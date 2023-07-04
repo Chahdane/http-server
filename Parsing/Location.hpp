@@ -37,36 +37,3 @@ private:
 	std::string					_autoindex; //
 
 };
-
-
-
-// class Location
-// {
-// 	public:
-// 		Location() {;};
-// 		~Location() {_method.clear();};
-		
-// 		/* Setteres */
-// 		void setDir(std::string word)		{_dir = word;};
-// 		void setRoot(std::string word)		{_root = word;};
-// 		void setIndex(std::string word)		{_index = word;};
-// 		void setMethod(std::string word)	{_method.push_back(word);};
-// 		void setautoindex(std::string word)	{_autoindex = word;};
-// 		void setRedir(std::string word)		{_redir = word;};
-
-// 		/* Getters */
-// 		std::string					getDir()		{return _dir;};
-// 		std::vector<std::string>	getMethod()		{return _method;};
-// 		std::string					getRoot()		{return _root;};
-// 		std::string					getIndex()		{return _index;};
-// 		std::string					getautoindex()	{return _autoindex;};
-// 		std::string					getRedir()		{return _redir;};
-		
-// 	private:
-// 		std::string					_dir;
-// 		std::vector<std::string>	_method;
-// 		std::string					_root;
-// 		std::string					_index;
-// 		std::string					_autoindex;
-// 		std::string					_redir;
-// };
