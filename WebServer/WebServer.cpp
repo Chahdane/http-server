@@ -522,14 +522,14 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
     std::ifstream fd( toSend.c_str(), std::fstream::binary );
     stat(toSend.c_str(), &s);
     if (!fd.is_open())
-        sendErrorToClient(404, client);
+        sendErrorToClient(500, client);
     else
     {
         std::string body = req.getBody();
         if (req.getContentType().find("multipart") != std::string::npos)
         {
             if (body.find("filename=") == std::string::npos)
-                return (sendErrorToClient(400, client));
+                return (sendErrorToClient(400, client), fd.close());
             std::string filename = body.substr(body.find("filename=") + 10, body.find("\"", body.find("filename=") + 10) - (body.find("filename=") + 10));
             std::string boundary = "\r\n--" + req.getBoundary() + "--";
             std::string content = body.substr(body.find("\r\n\r\n") + 4, body.length() - (body.find("\r\n\r\n") + 5) - boundary.length());
@@ -537,27 +537,28 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
             {
                 std::ofstream newFile(this->locations->getUploadPath() + filename, std::fstream::binary);
                 if (!newFile.is_open())
-                    return (sendErrorToClient(404, client));
+                    return (sendErrorToClient(500, client), fd.close());
                 newFile << content;
                 newFile.close();
+                return (this->sendToClient(client, "HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n"), fd.close());
             }
             else if (this->servers[client.getServerID()]->getUploadPath().empty())
             {
                 std::ofstream newFile(this->servers[client.getServerID()]->getUploadPath() + filename, std::fstream::binary);
                 if (!newFile.is_open())
-                    return (sendErrorToClient(404, client));
+                    return (sendErrorToClient(500, client), fd.close());
                 newFile << content;
                 newFile.close();
+                return (this->sendToClient(client, "HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n"), fd.close());
             }
-            else
-                sendErrorToClient(404, client);
+            return (this->sendToClient(client, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"), fd.close());
         }
         else if (req.getContentType().find("urlencoded") != std::string::npos)
         {
             std::string filename = body.substr(body.find("=") + 1);
             std::ifstream file(filename.c_str(), std::fstream::binary);
             if (!file.is_open())
-                sendErrorToClient(404, client);
+                return (sendErrorToClient(500, client), fd.close());
             else
             {
                 std::string line;
@@ -568,11 +569,11 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                 else if (!this->servers[client.getServerID()]->getUploadPath().empty())
                     path = this->servers[client.getServerID()]->getUploadPath();
                 else
-                    return (sendErrorToClient(404, client));
+                    return (this->sendToClient(client, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"), fd.close());
 
                 std::ofstream newFile(path + filename, std::fstream::binary);
                 if (!newFile.is_open())
-                    return (sendErrorToClient(404, client));
+                    return (sendErrorToClient(500, client), fd.close());
                 const int bufferSize = 2048;
                 char buffer[bufferSize];
                 while (file.read(buffer, bufferSize))
@@ -585,6 +586,7 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                     newFile.write(buffer, bytesRead);
                 file.close();
                 newFile.close();
+                return (this->sendToClient(client, "HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n"), fd.close());
             }
         }
         else
@@ -596,16 +598,17 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
             else if (!this->servers[client.getServerID()]->getUploadPath().empty())
                 path = this->servers[client.getServerID()]->getUploadPath();
             else
-                return fd.close(), (sendErrorToClient(200, client));
+                return (this->sendToClient(client, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"), fd.close());
             std::ofstream newFile(path + filename, std::fstream::binary);
             if (!newFile.is_open())
-                return (sendErrorToClient(404, client));
+                return (sendErrorToClient(500, client), fd.close());
             newFile << body;
             newFile.close();
+            return (this->sendToClient(client, "HTTP/1.1 201 Created\r\nContent-Length: 0\r\n\r\n"), fd.close());
         }
     }
     fd.close();
-    std::cout << "========= received it bro ========" << std::endl;
+    // std::cout << "========= received it bro ========" << std::endl;
 }
 
 std::string WebServ::getRandomName(void)
