@@ -29,6 +29,8 @@ class Request
         std::string			getBoundary() const	{return _boundary;};
         size_t				getContentLength() const		{return _contentLength;};
         std::string			getBody() const	{return _body;};
+
+        void                setBody(std::string body) {_body = body;};
         
 
         Request(std::string req)
@@ -103,7 +105,7 @@ class Request
         	std::cout << "Encoding: " << this->_encoding << std::endl;
         	std::cout << "Content-Type: " << this->_contentType << std::endl;
         	std::cout << "Boundary: " << this->_boundary << std::endl;
-        	std::cout << "Content-Length: " << this->_contentLength << std::endl;
+        	std::cout << "Content-Length: " << this->_contentLength;
         	if (this->_contentLength > 0 && this->_body.length() > 0)
         		std::cout << std::endl
         				  << std::endl

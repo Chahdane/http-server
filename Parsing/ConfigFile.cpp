@@ -33,10 +33,7 @@ void Conf::parse(void)
 {
     std::ifstream file(this->file_name.c_str());
     if (!file.is_open())
-    {
-        std::cerr << RED << "Error: " << RESET << this->file_name << ": " << strerror(errno) << std::endl;
-        return;
-    }
+        std::cerr << RED << "Error: " << RESET << this->file_name << ": " << strerror(errno) << std::endl, exit(1);
     std::string line;
     Server *currentServer = nullptr;
     Location *currentLocation = nullptr;
@@ -112,11 +109,11 @@ void Conf::parseServerLine(std::vector<std::string> tokens, Server *server)
         server->setMethods(allowTokens);
     }
     else if (tokens[0] == "autoindex" && tokens.size() > 1)
-    {
         server->setautoindex(tokens[1]);
-    }
+    else if (tokens[0] == "upload" && tokens.size() > 1)
+        server->setUploadPath(tokens[1]);
     else
-        std::cerr << RED << "Error: " << RESET << "Unknown identifier: `" << tokens[0] << "`" << std::endl;
+        std::cerr << RED << "Error: " << RESET << "Unknown identifier: `" << tokens[0] << "`" << std::endl, exit(1);
 }
 
 void Conf::parseLocationLine(std::vector<std::string> tokens, Location *location)
@@ -138,13 +135,16 @@ void Conf::parseLocationLine(std::vector<std::string> tokens, Location *location
         std::vector<std::string> allowTokens = tokens;
         location->setAllowedMethods(allowTokens);
     }
+    else if (tokens[0] == "cgi" && tokens.size() > 2)
+        location->addCgi(tokens[1], tokens[2]);
     else if (tokens[0] == "redirect" && tokens.size() > 2)
         location->setRedirection(tokens[2]);
     else if (tokens[0] == "autoindex" && tokens.size() > 1)
-    {
         location->setautoindex(tokens[1]);
-    }else
-        std::cerr << RED << "Error: " << RESET << "Unknown identifier: 1 `" << tokens[0] << "`" << std::endl;
+    else if (tokens[0] == "upload" && tokens.size() > 1)
+        location->setUploadPath(tokens[1]);
+    else
+        std::cerr << RED << "Error: " << RESET << "Unknown identifier: 1 `" << tokens[0] << "`" << std::endl, exit(1);
 }
 
 void Conf::setFileName(std::string file_name)

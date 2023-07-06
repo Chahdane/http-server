@@ -1,7 +1,7 @@
 #include "Server.hpp"
 
 Server::Server()
-    : _name(""), ip(""), _listen("80"), _method(), _error_pages(), _locations(), cgi(), _root(""), _index(""), _body_size("0")
+    : _name(""), ip(""), _listen("80"), _method(), _error_pages(), _locations(), cgi(), _root(""), _index(""), _body_size("0"), _autoindex("off"), _upload_path("")
 {
 }
 
@@ -24,6 +24,8 @@ Server &Server::operator=(const Server &copy)
         this->_root = copy._root;
         this->_index = copy._index;
         this->_body_size = copy._body_size;
+        this->_upload_path = copy._upload_path;
+        this->_autoindex = copy._autoindex;
     }
     return (*this);
 }
@@ -71,6 +73,10 @@ void Server::setIndex(std::string index)
 void Server::setMaxClientBodySize(std::string _body_size)
 {
     this->_body_size = _body_size;
+}
+void Server::setUploadPath(std::string upload_path)
+{
+    this->_upload_path = upload_path;
 }
 
 void Server::addMethod(std::string method)
@@ -129,4 +135,8 @@ std::string const &Server::getIndex() const
 std::string const &Server::getBody() const
 {
     return (this->_body_size);
+}
+std::string const &Server::getUploadPath() const
+{
+    return (this->_upload_path);
 }

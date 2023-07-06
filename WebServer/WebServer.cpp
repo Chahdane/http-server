@@ -431,8 +431,8 @@ void WebServ::runMethods(ClientSocket &client, std::string url, Request &request
         redirect(client, locations->getRedir());
     else if (request.getMethod() == "GET" && isAllowdMethod(client, "GET", url))
         GET(client, url);
-    // else if (request.getMethod() == "POST")
-    //     POST(client, url, request);
+    else if (request.getMethod() == "POST" && isAllowdMethod(client, "POST", url))
+        POST(client, url, request);
     else if (request.getMethod() == "DELETE" && isAllowdMethod(client, "DELETE", url))
         DELETE(client, url);
 }
@@ -442,13 +442,26 @@ void WebServ::manageClients()
     for(size_t i = 0; i < clients.size(); i++)
     {
         if(FD_ISSET(clients[i].getClientSocket(), &readingSet))
-        {
-            size_t Reqsize = recv(clients[i].getClientSocket(), clients[i].buffer, 65536, 0);
-            clients[i].size = Reqsize;
+        {   
+            // bzero(clients[i].buffer, 65536);
+            ssize_t Reqsize = recv(clients[i].getClientSocket(), clients[i].buffer, 65536, 0);
+            if (Reqsize == -1)
+                exit(69);
+            clients[i].buffer[Reqsize] = '\0';
+            clients[i].size = Reqsize ;
 			std::string str(clients[i].buffer);
 			clients[i].request = str.substr(0, Reqsize);
             Request request((char *)clients[i].request.c_str());
-            //request.print_req();
+            if (request.getPath() != "/favicon.ico")
+            {
+                printf("%s\n", clients[i].buffer);
+            //     std::cout << "==================================" << std::endl;
+            //     // request.printRequest();
+            //     // std::cout << std::endl;
+            //     std::cout << "size => " << Reqsize << std::endl;
+            //     std::cout << clients[i].request << std::endl;
+            //     std::cout << "==================================" << std::endl;
+            }
 			if (checkRequest(request, clients[i], Reqsize))
 				continue;
             std::string url = request.getPath();
@@ -490,6 +503,86 @@ void WebServ::GET(ClientSocket &client, std::string url)
 		fd.close(); 
 }
 
+void WebServ::POST(ClientSocket &client, std::string url, Request &req)
+{
+    (void) req;
+    struct stat s;
+    std::string toSend = fixUrl(url, client.getServerID());
+    if (url.size() >= 64)
+        return(sendErrorToClient(414, client));
+    std::ifstream fd( toSend.c_str(), std::fstream::binary );
+    stat(toSend.c_str(), &s);
+    if (!fd.is_open())
+        sendErrorToClient(404, client);
+    else
+    {
+        std::string body = req.getBody();
+        if (req.getContentType().find("multipart") != std::string::npos)
+        {
+            if (body.find("filename=") == std::string::npos)
+                return (sendErrorToClient(400, client));
+            std::string filename = body.substr(body.find("filename=") + 10, body.find("\"", body.find("filename=") + 10) - (body.find("filename=") + 10));
+            std::string boundary = "\r\n--" + req.getBoundary() + "--";
+            std::string content = body.substr(body.find("\r\n\r\n") + 4, body.length() - (body.find("\r\n\r\n") + 5) - boundary.length());
+            if (this->locations && !this->locations->getUploadPath().empty())
+            {
+                std::ofstream newFile(this->locations->getUploadPath() + filename, std::fstream::binary);
+                if (!newFile.is_open())
+                    return (sendErrorToClient(404, client));
+                newFile << content;
+                newFile.close();
+                this->GET(client, url);
+            }
+            else if (this->servers[client.getServerID()]->getUploadPath().empty())
+            {
+                std::ofstream newFile(this->servers[client.getServerID()]->getUploadPath() + filename, std::fstream::binary);
+                if (!newFile.is_open())
+                    return (sendErrorToClient(404, client));
+                newFile << content;
+                newFile.close();
+                this->GET(client, url);
+            }
+            else
+                sendErrorToClient(404, client);
+        }
+        else
+        {
+            std::string filename = body.substr(body.find("=") + 1);
+            std::ifstream file(filename.c_str(), std::fstream::binary);
+            if (!file.is_open())
+                sendErrorToClient(404, client);
+            else
+            {
+                std::string line;
+                std::string content;
+
+                // chunk this part
+                getline(file, line, '\0');
+                content += line;
+                
+                file.close();
+                if (this->locations && !this->locations->getUploadPath().empty())
+                {
+                    std::ofstream newFile(this->locations->getUploadPath() + filename, std::fstream::binary);
+                    newFile << content;
+                    newFile.close();
+                    this->GET(client, url);
+                }
+                else if (this->servers[client.getServerID()]->getUploadPath().empty())
+                {
+                    std::ofstream newFile(this->servers[client.getServerID()]->getUploadPath() + filename, std::fstream::binary);
+                    newFile << content;
+                    newFile.close();
+                    this->GET(client, url);
+                }
+                else
+                    sendErrorToClient(404, client);
+            }
+        }
+    }
+    fd.close();
+    std::cout << "========= received it bro ========" << std::endl;
+}
 
 void removeFile(std::string path)
 {

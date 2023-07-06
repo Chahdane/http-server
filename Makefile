@@ -13,7 +13,6 @@ all: WebServ
 
 WebServ: $(objects)
 	$(CC) $(CFLAGS) $(objects) -o $@
-	rm */*.o
 
 clean:
 	rm -f $(objects)

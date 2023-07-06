@@ -40,7 +40,7 @@ class WebServ
 		void runMethods(ClientSocket &client, std::string url, Request &request);
         void GET(ClientSocket &client, std::string url);
         void DELETE(ClientSocket &client, std::string url);
-        //void POST(ClientSocket client, std::string url, Request req);
+        void POST(ClientSocket &client, std::string url, Request &req);
         void redirect(ClientSocket client, std::string url);
         std::vector<Socket> getSocketList() {return sockets; }
         std::vector<ClientSocket> getClientsList() {return clients; }

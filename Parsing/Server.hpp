@@ -24,6 +24,7 @@ public:
     void setIndex(std::string index);
     void setMaxClientBodySize(std::string max_client_body_size);
     void setautoindex(std::string word)					{_autoindex = word;};
+    void setUploadPath(std::string upload_path);
 
 
     void addMethod(std::string method);
@@ -42,6 +43,7 @@ public:
     std::string const &getIndex(void) const;
     std::string const &getBody(void) const;
     std::string							getautoindex()	{return _autoindex;};
+    std::string const &getUploadPath(void) const;
 
     void print(void) const;
 
@@ -57,5 +59,6 @@ private:
     std::string _index;
     std::string  _body_size;
     std::string							_autoindex;
+    std::string                         _upload_path;
 };
 
