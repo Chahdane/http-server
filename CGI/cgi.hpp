@@ -16,7 +16,7 @@
 class CGI {
 
     public:
-        CGI(const Request& request);
+        CGI(const Request& request, Location *location);
         void   setInputPath(const std:: string& path);
         void   setOutputPath(const std:: string& path);
         void   run_cgi();

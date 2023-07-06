@@ -3,14 +3,14 @@
 #include "../Parsing/Server.hpp"
 #include "../Parsing/Location.hpp"
 
-CGI::CGI(const Request& request)
+CGI::CGI(const Request& request, Location *location)
     : contentLength()
     , _request(request)
     {
-        Location loc;
-        loc.setRoot("/CGI/CGI-bin/test.php");
-        scriptPath = loc.getRoot();
-        // std::cout << "scriptPath"<< loc.getRoot()<<"whyyyyy" <<"\n";
+        // Location loc;
+        // loc.setRoot("/CGI/CGI-bin/test.php");
+         scriptPath = location->getRoot();
+     std::cout << "scriptPath"<< scriptPath <<"whyyyyy" <<"\n";
     }
 
 unsigned int getFileSize(const std::string& path) {
