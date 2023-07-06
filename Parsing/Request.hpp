@@ -20,12 +20,12 @@ class Request
 	
     public:
 		std::string			getRequest() {return _request;};
-        std::string			getMethod() {return _method;};
+        std::string			getMethod() const {return _method;};
         std::string			getPath() {return _path;};
-		std::string			getQueries() {return _queries;};
+		std::string			getQueries() const {return _queries;};
         std::string			getProtocol() {return _protocol;};
 		std::string			getEncoding() {return _encoding;}
-		std::string			getContentType() {return _contentType;}
+		std::string			getContentType() const {return _contentType;}
         std::string			getBoundary() const	{return _boundary;};
         size_t				getContentLength() const		{return _contentLength;};
         std::string			getBody() const	{return _body;};

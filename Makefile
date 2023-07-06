@@ -1,5 +1,5 @@
 sources = main.cpp Parsing/ConfigFile.cpp Parsing/Location.cpp Parsing/Server.cpp Parsing/utils.cpp\
-		WebServer/WebServer.cpp Socket/Socket.cpp
+		CGI/cgi.cpp WebServer/WebServer.cpp Socket/Socket.cpp
 
 objects = $(sources:.cpp=.o)
 

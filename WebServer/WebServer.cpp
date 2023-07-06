@@ -1,6 +1,6 @@
 #include "../WebServer/WebServer.hpp"
 #include "../Parsing/Request.hpp"
-
+#include "../CGI/cgi.hpp"
 
 WebServ::WebServ(char **envp , std::vector<Server*> servers)
 {
@@ -447,6 +447,14 @@ void WebServ::runMethods(ClientSocket &client, std::string url, Request &request
         DELETE(client, url);
 }
 
+int containsCgiBin(const std::string& url)
+{
+    if (url.find("/cgi") != std::string::npos)
+        return 1;
+    else
+        return 0;
+}
+
 void WebServ::manageClients()
 {
     for(size_t i = 0; i < clients.size(); i++)
@@ -476,8 +484,12 @@ void WebServ::manageClients()
 				continue;
             std::string url = request.getPath();
             // check if url contains cgi-bin
-            //check if cgi allowed in location
+            if (containsCgiBin(url))
             // exec cgi
+            {
+                CGI cgi(request);
+                cgi.run_cgi();
+            }
 			runMethods(clients[i], url, request);
             eraseClient(clients[i]);
         }
