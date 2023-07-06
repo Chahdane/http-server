@@ -47,10 +47,12 @@ class WebServ
 		WebServ(char **envp , std::vector<Server*> servers);
         std::vector<Server*> servers;
         void parseMimeTypes(void);
+        bool isValidLoc(std::string url, ClientSocket client);
         void printMimeTypes(void);
         std::string getMimeType(std::string &extension);
         std::string getExtensionFromUrl(const std::string& url);
         std::string getMimeTypeFromExtension(const std::string& url);
+        bool isAllowdMethod(ClientSocket &client, std::string method, std::string url);
         char **envp;
         int maxFds;
         fd_set readingSet;

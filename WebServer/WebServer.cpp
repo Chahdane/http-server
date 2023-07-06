@@ -207,11 +207,33 @@ std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
     for(size_t i = 0; i < locations.size(); i++)
     {
         std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
-        if (url == locations[i]->getDir() + "/")
+        if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
             return locations[i]->getRoot().erase(0,1);
     }
     return "none";
 }
+
+bool WebServ::isValidLoc(std::string url, ClientSocket client)
+{
+    if (url == "/")
+        return true;
+
+    std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
+    std::cout << locations[0]->getRoot() << std::endl;
+    for(size_t i = 0; i < locations.size(); i++)
+    {
+        std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
+        if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
+        {
+            std::cout << "VAAAALID LOC\n";
+            return true;
+        }
+    }
+    std::cout << "NOT VAAAALID LOC\n";
+    return false;
+}
+
+
 
 void WebServ::redirect(ClientSocket client, std::string url)
 {
@@ -348,6 +370,58 @@ int WebServ::checkRequest(Request &request, ClientSocket &client, int size)
 	return 0;
 }
 
+
+// std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
+// {
+//     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
+//     //std::cout << locations[0]->getRoot() << std::endl;
+//     for(size_t i = 0; i < locations.size(); i++)
+//     {
+//         std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
+//         if (url == locations[i]->getDir() + "/")
+//             return locations[i]->getRoot().erase(0,1);
+//     }
+//     return "none";
+// }
+
+bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::string url)
+{
+     return true;
+    if (!isValidLoc(url, client))
+        return true;
+    std::cout << "url => "<< url <<std::endl;
+    if (url == "/")
+    {
+        std::cout << "no loc\\n"; 
+        std::vector<std::string> methods = servers[client.getServerID()]->getMethod();
+        for(size_t i = 0; i < methods.size(); i++)
+        {
+            std::cout << method << " ---- " << methods[i] << std::endl;
+            if (method == methods[i])
+                return true;
+        }
+        return false;
+    }
+
+
+    std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
+    for(size_t i = 0; i < locations.size(); i++)
+    {
+        if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
+        {
+            std::cout << "location ::::> " << locations[i]->getDir() << std::endl;
+            std::vector<std::string> methods = locations[i]->getMethod();
+            for(size_t i = 0; i < methods.size(); i++)
+            {
+                std::cout << method << " ---- " << methods[i] << std::endl;
+                if (method == methods[i])
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
 void WebServ::runMethods(ClientSocket &client, std::string url, Request &request)
 {
 	locations = getLocation(url, client.getServerID());
@@ -355,11 +429,11 @@ void WebServ::runMethods(ClientSocket &client, std::string url, Request &request
     //     std::cout << locations->getRedir() << std::endl;
 	if(locations && !locations->getRedir().empty())
         redirect(client, locations->getRedir());
-    else if (request.getMethod() == "GET")
+    else if (request.getMethod() == "GET" && isAllowdMethod(client, "GET", url))
         GET(client, url);
     // else if (request.getMethod() == "POST")
     //     POST(client, url, request);
-    else if (request.getMethod() == "DELETE")
+    else if (request.getMethod() == "DELETE" && isAllowdMethod(client, "DELETE", url))
         DELETE(client, url);
 }
 
