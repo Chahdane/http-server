@@ -386,7 +386,6 @@ int WebServ::checkRequest(Request &request, ClientSocket &client, int size)
 
 bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::string url)
 {
-    return true;
     if (!isValidLoc(url, client))
         return true;
     std::cout << "url => "<< url <<std::endl;
