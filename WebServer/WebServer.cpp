@@ -91,8 +91,23 @@ int WebServ::sendToClient(ClientSocket &client, char *msg, int size)
 	return ret;
 }
 
+// send_ret_2 = send(client.get_socket(), buffer, r, 0);
+// 				if (send_ret_2 < 0)
+// 				{
+// 					send_error_page(500, client);
+// 					break;
+// 				}
+// 				else if (send_ret_2 == 0)
+// 				{
+// 					send_error_page(400, client);
+// 					break;
+// 				}
+
+
 void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 {	
+
+    std::cout << "here   : " << dir << "\n";
     if(!dir.empty())
     {
         FILE *fd_s = fopen(dir.c_str(), "rb");
@@ -100,40 +115,56 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 			sendToClient(client ,  "HTTP/1.1 200\ret\nConnection: close\ret\nContent-Length: 120\ret\n\ret\n<!DOCTYPE html><head><title>makaynach</title></head><h1>wa hya location kayna walakin fin l file?</h1><body> </body></html>");
 		else
 		{
+            std::cout << "here2\n";
 			fseek (fd_s , 0, SEEK_END);
 			int lSize = ftell (fd_s);
 			rewind (fd_s);
 			fclose(fd_s);
+            std::cout << "mime type " << getMimeTypeFromExtension(dir) << std::endl;
 			sendToClient(client,"HTTP/1.1 " + error_pages.find(code)->second + "\n" + "Content-Type: " + getMimeTypeFromExtension(dir) + "\nContent-Length: " + std::to_string(lSize) + "\n\n");
 			int readFD = open(dir.c_str(), O_RDONLY);
 			if (readFD < 0) return (sendErrorToClient(500, client));
-			setToWait(readFD, readingSet);
-			selection(readingSet, writingSet);
+                std::cout << "here3\n";
+			// setToWait(readFD, readingSet);
+			// selection(readingSet, writingSet);
 			char file[1024];
 			int ret = read(readFD, file, 1024);
+
+            int ret2;
+
+
 			if(ret < 0)
 				sendErrorToClient(500, client);
 			else 
 			{
+                std::cout << "here4\n";
 				while(ret)
 				{
-					if (sendToClient(client, file, ret) <= 0) break;
-					setToWait(readFD, readingSet);
-					selection(readingSet, writingSet);
-					if((ret = read(readFD, file, ret)) < 0)
+                    ret2 = send(client.getClientSocket(), file, ret, 0);
+					//if (sendToClient(client, file, ret) <= 0) break;
+					// setToWait(readFD, readingSet);
+					// selection(readingSet, writingSet);
+					if((ret = read(readFD, file, 1024)) < 0)
 					{
 						sendErrorToClient(500, client);
+                        std::cout << "err\n";
 						break;
 					}
 					if(ret == 0)
-						break;
+                    {
+                        std::cout << "done\n";
+                        break;
+                    }
+						
 				}
 			}
 			close(readFD);
 		}
-		return;
     }
+    return ;
+    std::cout << "here5\n";
 	sendToClient(client ,  "HTTP/1.1 " + error_pages[code] + "\n\n");
+    std::cout << "here6\n";
 }
 
 
@@ -200,6 +231,7 @@ void WebServ::sendErrorToClient(int err, ClientSocket &client)
         }
 		close(fd);
     }
+   // std::cout << "rr" << std::endl;
 }
 
 bool WebServ::selectAndWrite(std::string url, ClientSocket client, std::string str, Request req)
@@ -320,6 +352,8 @@ void WebServ::runMethods(ClientSocket &client, std::string url, Request &request
         redirect(client, locations->getRedir());
     else if (request.getMethod() == "GET")
         GET(client, url);
+    // else if (request.getMethod() == "POST")
+    //     POST(client, url, request);
     else if (request.getMethod() == "DELETE")
         DELETE(client, url);
 }
@@ -335,7 +369,7 @@ void WebServ::manageClients()
 			std::string str(clients[i].buffer);
 			clients[i].request = str.substr(0, Reqsize);
             Request request((char *)clients[i].request.c_str());
-            request.print_req();
+            //request.print_req();
 			if (checkRequest(request, clients[i], Reqsize))
 				continue;
             std::string url = request.getPath();
@@ -391,7 +425,7 @@ void removeFile(std::string str)
         std::string str1 = str + direct->d_name;
         struct stat s1;
         stat(str1.c_str(), &s1);
-        if (dName == "." || dName == "..")
+        if (dName == "." || dName == ".." || dName == "/")
             return ;
         if (S_ISDIR(s1.st_mode))
             removeFile(str + direct->d_name);
@@ -438,10 +472,7 @@ void WebServ::DELETE(ClientSocket &client, std::string url)
     send(client.getClientSocket(), response.c_str(), response.size(), 0);
 }
 
-void WebServ::POST()
-{
-	
-}
+
 
 void pexit(std::string err)
 {
