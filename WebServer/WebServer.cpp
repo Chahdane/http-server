@@ -504,7 +504,6 @@ void WebServ::GET(ClientSocket &client, std::string url)
 
 void WebServ::POST(ClientSocket &client, std::string url, Request &req)
 {
-    (void) req;
     struct stat s;
     std::string toSend = fixUrl(url, client.getServerID());
     if (url.size() >= 64)
@@ -530,7 +529,6 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                     return (sendErrorToClient(404, client));
                 newFile << content;
                 newFile.close();
-                this->GET(client, url);
             }
             else if (this->servers[client.getServerID()]->getUploadPath().empty())
             {
@@ -539,7 +537,6 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                     return (sendErrorToClient(404, client));
                 newFile << content;
                 newFile.close();
-                this->GET(client, url);
             }
             else
                 sendErrorToClient(404, client);
@@ -553,29 +550,30 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
             else
             {
                 std::string line;
-                std::string content;
+                std::string path;
 
-                // chunk this part
-                getline(file, line, '\0');
-                content += line;
-                
-                file.close();
                 if (this->locations && !this->locations->getUploadPath().empty())
-                {
-                    std::ofstream newFile(this->locations->getUploadPath() + filename, std::fstream::binary);
-                    newFile << content;
-                    newFile.close();
-                    this->GET(client, url);
-                }
+                    path = this->locations->getUploadPath();
                 else if (this->servers[client.getServerID()]->getUploadPath().empty())
-                {
-                    std::ofstream newFile(this->servers[client.getServerID()]->getUploadPath() + filename, std::fstream::binary);
-                    newFile << content;
-                    newFile.close();
-                    this->GET(client, url);
-                }
+                    path = this->servers[client.getServerID()]->getUploadPath();
                 else
-                    sendErrorToClient(404, client);
+                    return (sendErrorToClient(404, client));
+
+                std::ofstream newFile(path + filename, std::fstream::binary);
+                if (!newFile.is_open())
+                    return (sendErrorToClient(404, client));
+                const int bufferSize = 2048;
+                char buffer[bufferSize];
+                while (file.read(buffer, bufferSize))
+                {
+                    newFile.write(buffer, bufferSize);
+                    memset(buffer, 0, bufferSize);
+                }
+                std::streamsize bytesRead = file.gcount(); // last chunk
+                if (bytesRead > 0)
+                    newFile.write(buffer, bytesRead);
+                file.close();
+                newFile.close();
             }
         }
     }
