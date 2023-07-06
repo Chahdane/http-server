@@ -417,29 +417,30 @@ void WebServ::GET(ClientSocket &client, std::string url)
 }
 
 
-void removeFile(std::string str)
+void removeFile(std::string path)
 {
+    struct stat st;
     struct dirent *direct;
-    struct stat s;
-    stat(str.c_str(), &s);
-    str += "/";
-    DIR *dir = opendir(str.c_str());
-    while (S_ISDIR(s.st_mode) && (direct = readdir(dir)) != NULL)
+    std::string deleted ;
+    stat(path.c_str(), &st);
+    DIR *dir = opendir(path.c_str());
+    while (S_ISDIR(st.st_mode) && (direct = readdir(dir)) != NULL)
     {
-        std::string dName(direct->d_name);
-        std::string str1 = str + direct->d_name;
-        struct stat s1;
-        stat(str1.c_str(), &s1);
-        if (dName == "." || dName == ".." || dName == "/")
-            return ;
-        if (S_ISDIR(s1.st_mode))
-            removeFile(str + direct->d_name);
-        else if (!S_ISDIR(s1.st_mode))
-             unlink(((const char *)str1.c_str()));
+        deleted = path + direct->d_name;
+        struct stat sta;
+        stat(deleted.c_str(), &sta);
+        if (!strcmp(direct->d_name, ".") || !strcmp(direct->d_name, "..") || !strcmp(direct->d_name, "/"));
+        else
+        {
+            if (S_ISDIR(sta.st_mode))
+                removeFile(path + direct->d_name);
+            else if (!S_ISDIR(sta.st_mode))
+                unlink(((const char *)deleted.c_str()));
+        }
     }
     if (dir)
         closedir(dir);
-    remove(str.c_str());
+    remove(path.c_str());
 }
 
 
@@ -462,14 +463,11 @@ std::string findPWD(char **envp)
 
 void WebServ::DELETE(ClientSocket &client, std::string url)
 {
-
     std::string root = getLocationRoot(url, client);
-    //std::cout << "root " << root << std::endl;
-    // need to add root
-    std::string path = findPWD(envp) + root + url;
+    std::string path = findPWD(envp) + root;
+    std::cout << path << std::endl;
 	struct stat s;
 	std::cout << path << std::endl;
-    exit(1);
     stat(path.c_str(), &s);
     if (!S_ISDIR(s.st_mode))
         unlink(((const char *)path.c_str()));
