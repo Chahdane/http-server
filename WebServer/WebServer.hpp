@@ -36,6 +36,7 @@ class WebServ
 		int checkRequest(Request &request, ClientSocket &client, int size);
         std::string fixUrl(std::string url, int i);
         Location *getLocation(std::string url, int i);
+        std::string getLocationRoot(std::string url, ClientSocket client);
 		void runMethods(ClientSocket &client, std::string url, Request &request);
         void GET(ClientSocket &client, std::string url);
         void DELETE(ClientSocket &client, std::string url);

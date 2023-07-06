@@ -5,7 +5,6 @@
 
 class Request
 {
-
 	private:
         std::string _request;
         std::string _method;
