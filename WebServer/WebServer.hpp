@@ -49,6 +49,7 @@ class WebServ
         void parseMimeTypes(void);
         bool isValidLoc(std::string url, ClientSocket client);
         void printMimeTypes(void);
+        std::string getRandomName(void);
         std::string getMimeType(std::string &extension);
         std::string getExtensionFromUrl(const std::string& url);
         std::string getMimeTypeFromExtension(const std::string& url);
