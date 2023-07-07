@@ -4,7 +4,7 @@ sources = main.cpp Parsing/ConfigFile.cpp Parsing/Location.cpp Parsing/Server.cp
 objects = $(sources:.cpp=.o)
 
 CC = c++
-CFLAGS = -Wall -Wextra -Werror -g -O3 -I./headers -fsanitize=address -std=c++98 -g3
+CFLAGS = -Wall -Wextra -Werror -g -O3 -I./headers -std=c++98 #-fsanitize=address-g3
 
 .cpp.o:
 	$(CC) $(CFLAGS) -c $< -o $@
