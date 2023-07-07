@@ -273,6 +273,57 @@ void WebServ::redirect(ClientSocket client, std::string url)
 	(ret < 0) ? sendErrorToClient(500, client) : sendErrorToClient(400, client);
 }
 
+std::string WebServ::stringifyError(int err)
+{
+    static std::map<int, std::string> errors;
+    if (errors.empty())
+    {
+        errors[100] = "Continue";
+        errors[101] = "Switching Protocols";
+        errors[200] = "OK";
+        errors[201] = "Created";
+        errors[202] = "Accepted";
+        errors[203] = "Non-Authoritative Information";
+        errors[204] = "No Content";
+        errors[205] = "Reset Content";
+        errors[206] = "Partial Content";
+        errors[300] = "Multiple Choices";
+        errors[301] = "Moved Permanently";
+        errors[302] = "Found";
+        errors[303] = "See Other";
+        errors[304] = "Not Modified";
+        errors[305] = "Use Proxy";
+        errors[307] = "Temporary Redirect";
+        errors[400] = "Bad Request";
+        errors[401] = "Unauthorized";
+        errors[402] = "Payment Required";
+        errors[403] = "Forbidden";
+        errors[404] = "Not Found";
+        errors[405] = "Method Not Allowed";
+        errors[406] = "Not Acceptable";
+        errors[407] = "Proxy Authentication Required";
+        errors[408] = "Request Time-out";
+        errors[409] = "Conflict";
+        errors[410] = "Gone";
+        errors[411] = "Length Required";
+        errors[412] = "Precondition Failed";
+        errors[413] = "Request Entity Too Large";
+        errors[414] = "Request-URI Too Large";
+        errors[415] = "Unsupported Media Type";
+        errors[416] = "Requested range not satisfiable";
+        errors[417] = "Expectation Failed";
+        errors[500] = "Internal Server Error";
+        errors[501] = "Not Implemented";
+        errors[502] = "Bad Gateway";
+        errors[503] = "Service Unavailable";
+        errors[504] = "Gateway Time-out";
+        errors[505] = "HTTP Version not supported";
+    }
+    if (errors.find(err) == errors.end())
+        return "Something went wrong";
+    return errors[err];
+}
+
 void WebServ::sendErrorToClient(int err, ClientSocket &client)
 {
     std::map<std::string , std::string> errpages = servers[client.getServerID()]->getError();
@@ -286,7 +337,15 @@ void WebServ::sendErrorToClient(int err, ClientSocket &client)
         }
 		close(fd);
     }
-   // std::cout << "rr" << std::endl;
+    else
+    {
+        std::string errorPage = "<html><body><h1>Error " + std::to_string(err) + "</h1><p>" + this->stringifyError(err) + "</p></body></html>";
+        std::string response = "HTTP/1.1 " + std::to_string(err) + " " + this->stringifyError(err) + "\r\n"
+                            "Content-Type: text/html\r\n"
+                            "Content-Length: " + std::to_string(errorPage.length()) + "\r\n\r\n" +
+                            errorPage;
+        this->sendToClient(client, response);
+    }
 }
 
 bool WebServ::selectAndWrite(std::string url, ClientSocket client, std::string str, Request req)
