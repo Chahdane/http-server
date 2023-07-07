@@ -594,14 +594,15 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
         }
         else if (req.getContentType().find("urlencoded") != std::string::npos)
         {
+            // std::cout << "in here" << std::endl;
             std::string filename = body.substr(body.find("=") + 1);
             std::ifstream file(filename.c_str(), std::fstream::binary);
             if (!file.is_open())
                 return (sendErrorToClient(500, client), fd.close());
             else
             {
-                std::string line;
-                std::string path;
+                std::string line, path;
+            // std::cout << "in here" << std::endl;
 
                 if (this->locations && !this->locations->getUploadPath().empty())
                     path = this->locations->getUploadPath();
@@ -609,10 +610,12 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                     path = this->servers[client.getServerID()]->getUploadPath();
                 else
                     return (this->sendToClient(client, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"), fd.close());
+            // std::cout << "in here" << std::endl;
 
                 std::ofstream newFile(path + filename, std::fstream::binary);
                 if (!newFile.is_open())
                     return (sendErrorToClient(500, client), fd.close());
+            // std::cout << "in here" << std::endl;
                 const int bufferSize = 2048;
                 char buffer[bufferSize];
                 while (file.read(buffer, bufferSize))

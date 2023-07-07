@@ -4,8 +4,8 @@
 #include <sstream>
 #include <vector>
 
-std::vector<std::string> split(std::string const &str, char delim);
 std::string trim(const std::string &str);
+std::vector<std::string> split(std::string const &str, char delim);
 
 class Request
 {
@@ -72,7 +72,16 @@ class Request
                 if (line.find(attributes[i]) != std::string::npos)
                     *attribute[i] = line.substr(line.find(attributes[i]) + attributes[i].length()), isFound = true;
             if (line.find(attributes[5]) != std::string::npos)
-                this->_contentLength = std::stoi(line.substr(line.find(attributes[4]) + attributes[4].length())), isFound = true;
+            {
+                try
+                {
+                    this->_contentLength = std::stoi(line.substr(line.find(attributes[5]) + attributes[5].length())), isFound = true;
+                }
+                catch (std::exception &e)
+                {
+                    std::cerr << "Error: " << e.what() << std::endl;
+                }
+            }
             if (__cookie_str.length() > 0)
             {
                 std::vector<std::string> cookies = split(__cookie_str, ';');
@@ -123,6 +132,13 @@ class Request
         	std::cout << "Encoding: " << this->_encoding << std::endl;
         	std::cout << "Content-Type: " << this->_contentType << std::endl;
         	std::cout << "Boundary: " << this->_boundary << std::endl;
+            if (this->_cookie.size() > 0)
+            {
+                std::cout << "Cookie: ";
+                for (std::map<std::string, std::string>::iterator it = this->_cookie.begin(); it != this->_cookie.end(); it++)
+                    std::cout << it->first << "=" << it->second << "; ";
+                std::cout << std::endl;
+            }
         	std::cout << "Content-Length: " << this->_contentLength;
         	if (this->_contentLength > 0 && this->_body.length() > 0)
         		std::cout << std::endl
