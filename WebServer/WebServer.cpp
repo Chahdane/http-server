@@ -333,7 +333,7 @@ void WebServ::sendErrorToClient(int err, ClientSocket &client)
         if(fd >= 0)
             return (close(fd), this->sendResponse(client, errpages[std::to_string(err)], err));
     }
-    std::string errorPage = "<html><head><title>" + std::to_string(err) + " " + this->stringifyError(err) + "</title><style>* { font-family: \"Arial\"; }</style></head><body><br /><h1>ERROR " + std::to_string(err) + "</h1><hr /><p>" + this->stringifyError(err) + "</p></body></html>";
+    std::string errorPage = "<html><head><title>" + std::to_string(err) + " " + this->stringifyError(err) + "</title><style>*{font-family:\"Arial\";}</style></head><body><center><br/><h1>" + std::to_string(err) + " - " + this->stringifyError(err) + "</h1><hr/></center></body></html>";
     std::string response = "HTTP/1.1 " + std::to_string(err) + " " + this->stringifyError(err) + "\r\n"
                         "Content-Type: text/html\r\n"
                         "Content-Length: " + std::to_string(errorPage.length()) + "\r\n\r\n" +
