@@ -1,6 +1,6 @@
 #include "../WebServer/WebServer.hpp"
 #include "../Parsing/Request.hpp"
-
+#include "../CGI/cgi.hpp"
 
 WebServ::WebServ(char **envp , std::vector<Server*> servers)
 {
@@ -210,6 +210,25 @@ Location *WebServ::getLocation(std::string url, int i)
     return NULL;
 }
 
+Location *WebServ::getLocationByUrl(std::string url, ClientSocket client)
+{
+
+    //std::string newurl = url;
+    //newurl.
+    std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
+    std::cout << locations[0]->getRoot() << std::endl;
+    for(size_t i = 0; i < locations.size(); i++)
+    {
+        //std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
+        if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
+        {
+            //std::cout << url << " --   hahwa  -- " << std::endl;
+            return locations[i];
+        }
+            
+    }
+    return NULL;
+}
 
 std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
 {
@@ -217,7 +236,7 @@ std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
     std::cout << locations[0]->getRoot() << std::endl;
     for(size_t i = 0; i < locations.size(); i++)
     {
-        std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
+        //std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
             return locations[i]->getRoot().erase(0,1);
     }
@@ -402,7 +421,7 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
     std::cout << "url => "<< url <<std::endl;
     if (url == "/")
     {
-        std::cout << "no loc\\n"; 
+        //std::cout << "no loc\\n"; 
         std::vector<std::string> methods = servers[client.getServerID()]->getMethod();
         for(size_t i = 0; i < methods.size(); i++)
         {
@@ -419,11 +438,11 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
     {
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
         {
-            std::cout << "location ::::> " << locations[i]->getDir() << std::endl;
+            //std::cout << "location ::::> " << locations[i]->getDir() << std::endl;
             std::vector<std::string> methods = locations[i]->getMethod();
             for(size_t i = 0; i < methods.size(); i++)
             {
-                std::cout << method << " ---- " << methods[i] << std::endl;
+                //std::cout << method << " ---- " << methods[i] << std::endl;
                 if (method == methods[i])
                     return true;
             }
@@ -445,6 +464,14 @@ void WebServ::runMethods(ClientSocket &client, std::string url, Request &request
         POST(client, url, request);
     else if (request.getMethod() == "DELETE" && isAllowdMethod(client, "DELETE", url))
         DELETE(client, url);
+}
+
+int containsCgiBin(const std::string& url)
+{
+    if (url.find("/cgi") != std::string::npos)
+        return 1;
+    else
+        return 0;
 }
 
 void WebServ::manageClients()
@@ -476,8 +503,20 @@ void WebServ::manageClients()
 				continue;
             std::string url = request.getPath();
             // check if url contains cgi-bin
-            //check if cgi allowed in location
-            // exec cgi
+            std::cout << "AFAF ::: "<< url << std::endl;
+            
+            //Location *location = getLocationByUrl(url, clients[i]);
+            // if (location) // check cgi
+            // if (location)
+            // // exec cgi
+            // {
+            //     if (....)
+            //     {
+            //          CGI cgi(request, location);
+            //          cgi.run_cgi();
+            //     }
+               
+            // }
 			runMethods(clients[i], url, request);
             eraseClient(clients[i]);
         }

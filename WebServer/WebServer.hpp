@@ -54,6 +54,7 @@ class WebServ
         std::string getExtensionFromUrl(const std::string& url);
         std::string getMimeTypeFromExtension(const std::string& url);
         bool isAllowdMethod(ClientSocket &client, std::string method, std::string url);
+        Location *getLocationByUrl(std::string url, ClientSocket client);
         char **envp;
         int maxFds;
         fd_set readingSet;
