@@ -110,7 +110,7 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 			rewind (fd_s);
 			fclose(fd_s);
             //std::cout << "mime type " << getMimeTypeFromExtension(dir) << std::endl;
-			sendToClient(client,"HTTP/1.1 " + error_pages.find(code)->second + "\n" + "Content-Type: " + getMimeTypeFromExtension(dir) + "\nContent-Length: " + std::to_string(lSize) + "\n\n");
+			sendToClient(client,"HTTP/1.1 " + std::to_string(code) + " " + this->stringifyError(code) + "\r\n" + "Content-Type: " + getMimeTypeFromExtension(dir) + "\r\nContent-Length: " + std::to_string(lSize) + "\r\n\r\n");
 			int readFD = open(dir.c_str(), O_RDONLY);
 			if (readFD < 0) return (sendErrorToClient(500, client));
                 //std::cout << "here3\n";
