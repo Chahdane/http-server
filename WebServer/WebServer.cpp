@@ -326,26 +326,19 @@ std::string WebServ::stringifyError(int err)
 
 void WebServ::sendErrorToClient(int err, ClientSocket &client)
 {
-    std::map<std::string , std::string> errpages = servers[client.getServerID()]->getError();
+    std::map<std::string , std::string> errpages = this->servers[client.getServerID()]->getError();
     if(errpages.find(std::to_string(err)) != errpages.end())
     {
         int fd = open(errpages[std::to_string(err)].c_str(), O_RDONLY);
         if(fd >= 0)
-        {
-            close(fd);
-        	sendResponse(client, errpages[std::to_string(err)], 200);
-        }
-		close(fd);
+            return (close(fd), this->sendResponse(client, errpages[std::to_string(err)], err));
     }
-    else
-    {
-        std::string errorPage = "<html><body><h1>Error " + std::to_string(err) + "</h1><p>" + this->stringifyError(err) + "</p></body></html>";
-        std::string response = "HTTP/1.1 " + std::to_string(err) + " " + this->stringifyError(err) + "\r\n"
-                            "Content-Type: text/html\r\n"
-                            "Content-Length: " + std::to_string(errorPage.length()) + "\r\n\r\n" +
-                            errorPage;
-        this->sendToClient(client, response);
-    }
+    std::string errorPage = "<html><body><h1>Error " + std::to_string(err) + "</h1><p>" + this->stringifyError(err) + "</p></body></html>";
+    std::string response = "HTTP/1.1 " + std::to_string(err) + " " + this->stringifyError(err) + "\r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: " + std::to_string(errorPage.length()) + "\r\n\r\n" +
+                        errorPage;
+    this->sendToClient(client, response);
 }
 
 bool WebServ::selectAndWrite(std::string url, ClientSocket client, std::string str, Request req)
