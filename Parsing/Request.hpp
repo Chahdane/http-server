@@ -2,6 +2,10 @@
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <vector>
+
+std::vector<std::string> split(std::string const &str, char delim);
+std::string trim(const std::string &str);
 
 class Request
 {
@@ -17,6 +21,7 @@ class Request
         std::string _boundary;
         unsigned int _contentLength;
         std::string _body;
+        std::map<std::string, std::string> _cookie;
 	
     public:
 		std::string			getRequest() {return _request;};
@@ -29,12 +34,14 @@ class Request
         std::string			getBoundary() const	{return _boundary;};
         size_t				getContentLength() const		{return _contentLength;};
         std::string			getBody() const	{return _body;};
+        std::map<std::string, std::string>	getCookie() const	{return _cookie;};
 
         void                setBody(std::string body) {_body = body;};
         
 
         Request(std::string req)
-            : _request(req), _method(""), _path(""), _queries(""), _protocol(""), _host(""), _encoding(""), _contentType(""), _boundary(""), _contentLength(0) {
+            : _request(req), _method(""), _path(""), _queries(""), _protocol(""), _host(""), _encoding(""), _contentType(""), _boundary(""), _contentLength(0), _body(""), _cookie()
+            {
                 std::stringstream ss(req);
                 _request = req;
                 _contentLength = 0;
@@ -57,14 +64,25 @@ class Request
 
         bool parseSingleLinedAttributes(std::string &line)
         {
-            std::string const attributes[5] = {"Host: ", "Accept-Encoding: ", "Content-Type: ", "boundary=", "Content-Length: "};
-            std::string *attribute[4] = {&this->_host, &this->_encoding, &this->_contentType, &this->_boundary};
+            std::string __cookie_str = "";
+            std::string const attributes[6] = {"Host: ", "Accept-Encoding: ", "Content-Type: ", "boundary=", "Cookie: ", "Content-Length: "};
+            std::string *attribute[5] = {&this->_host, &this->_encoding, &this->_contentType, &this->_boundary, &__cookie_str};
             bool isFound = false;
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
                 if (line.find(attributes[i]) != std::string::npos)
                     *attribute[i] = line.substr(line.find(attributes[i]) + attributes[i].length()), isFound = true;
-            if (line.find(attributes[4]) != std::string::npos)
+            if (line.find(attributes[5]) != std::string::npos)
                 this->_contentLength = std::stoi(line.substr(line.find(attributes[4]) + attributes[4].length())), isFound = true;
+            if (__cookie_str.length() > 0)
+            {
+                std::vector<std::string> cookies = split(__cookie_str, ';');
+                for (std::vector<std::string>::iterator it = cookies.begin(); it != cookies.end(); it++)
+                {
+                    std::vector<std::string> cookie = split(*it, '=');
+                    if (cookie.size() == 2)
+                        this->_cookie[trim(cookie[0])] = trim(cookie[1]);
+                }
+            }
             return isFound;
         }
 
