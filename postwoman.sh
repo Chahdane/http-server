@@ -20,9 +20,6 @@ echo "----- ${METHOD} : ${URL}------\n"
 if [ $METHOD == 'get' ]
 then
    curl -X GET $URL
-elif [ $METHOD == 'post' ]
-then
-	curl -X POST $URL
 elif [ $METHOD == 'delete' ]
 then
    curl -X DELETE $URL
