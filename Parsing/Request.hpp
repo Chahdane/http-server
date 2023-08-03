@@ -21,7 +21,7 @@ class Request
         std::string _boundary;
         unsigned int _contentLength;
         std::string _body;
-        std::map<std::string, std::string> _cookie;
+        std::string _cookie;
 	
     public:
 		std::string			getRequest() {return _request;};
@@ -34,13 +34,13 @@ class Request
         std::string			getBoundary() const	{return _boundary;};
         size_t				getContentLength() const		{return _contentLength;};
         std::string			getBody() const	{return _body;};
-        std::map<std::string, std::string>	getCookie() const	{return _cookie;};
+        std::string			getCookie() const	{return _cookie;};
 
         void                setBody(std::string body) {_body = body;};
         
 
         Request(std::string req)
-            : _request(req), _method(""), _path(""), _queries(""), _protocol(""), _host(""), _encoding(""), _contentType(""), _boundary(""), _contentLength(0), _body(""), _cookie()
+            : _request(req), _method(""), _path(""), _queries(""), _protocol(""), _host(""), _encoding(""), _contentType(""), _boundary(""), _contentLength(0), _body(""), _cookie("")
             {
                 std::stringstream ss(req);
                 _request = req;
@@ -64,9 +64,8 @@ class Request
 
         bool parseSingleLinedAttributes(std::string &line)
         {
-            std::string __cookie_str = "";
             std::string const attributes[6] = {"Host: ", "Accept-Encoding: ", "Content-Type: ", "boundary=", "Cookie: ", "Content-Length: "};
-            std::string *attribute[5] = {&this->_host, &this->_encoding, &this->_contentType, &this->_boundary, &__cookie_str};
+            std::string *attribute[5] = {&this->_host, &this->_encoding, &this->_contentType, &this->_boundary, &this->_cookie};
             bool isFound = false;
             for (int i = 0; i < 5; i++)
                 if (line.find(attributes[i]) != std::string::npos)
@@ -80,16 +79,6 @@ class Request
                 catch (std::exception &e)
                 {
                     std::cerr << "Error: " << e.what() << std::endl;
-                }
-            }
-            if (__cookie_str.length() > 0)
-            {
-                std::vector<std::string> cookies = split(__cookie_str, ';');
-                for (std::vector<std::string>::iterator it = cookies.begin(); it != cookies.end(); it++)
-                {
-                    std::vector<std::string> cookie = split(*it, '=');
-                    if (cookie.size() == 2)
-                        this->_cookie[trim(cookie[0])] = trim(cookie[1]);
                 }
             }
             return isFound;
@@ -132,13 +121,7 @@ class Request
         	std::cout << "Encoding: " << this->_encoding << std::endl;
         	std::cout << "Content-Type: " << this->_contentType << std::endl;
         	std::cout << "Boundary: " << this->_boundary << std::endl;
-            if (this->_cookie.size() > 0)
-            {
-                std::cout << "Cookie: ";
-                for (std::map<std::string, std::string>::iterator it = this->_cookie.begin(); it != this->_cookie.end(); it++)
-                    std::cout << it->first << "=" << it->second << "; ";
-                std::cout << std::endl;
-            }
+            std::cout << "Cookie: " << this->_cookie << std::endl;
         	std::cout << "Content-Length: " << this->_contentLength;
         	if (this->_contentLength > 0 && this->_body.length() > 0)
         		std::cout << std::endl

@@ -18,7 +18,6 @@
         pexit("binding error:");
     if (listen(_socket, 80) != 0)
 		pexit("listening error:");
-    std::cout << "------- " << port << "-------" <<std::endl;
 }
 
 int Socket::getSocket()

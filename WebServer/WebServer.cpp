@@ -1,6 +1,5 @@
 #include "../WebServer/WebServer.hpp"
 #include "../Parsing/Request.hpp"
-#include "../CGI/cgi.hpp"
 
 WebServ::WebServ(char **envp , std::vector<Server*> servers)
 {
@@ -20,7 +19,6 @@ void WebServ::setupStatusCodes()
     std::ifstream file("status.codes");
 
     if (!file.is_open()) {
-        std::cout << "Error opening file: " << "status.codes" << std::endl;
         return;
     }
 
@@ -32,7 +30,6 @@ void WebServ::setupStatusCodes()
         std::istringstream ss(line);
         if (!(ss >> StatusCode))
         {
-            std::cout << "Invalid StatusCode: " << line << std::endl;
             continue;
         }
         std::getline(ss, error);
@@ -42,8 +39,6 @@ void WebServ::setupStatusCodes()
 
         if (!error.empty())
             error_pages.insert(std::make_pair(StatusCode, error));
-        else
-            std::cout << "Missing error for StatusCode: " << StatusCode << std::endl;
     }
     file.close();
     maxFds = -1;
@@ -113,9 +108,7 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 			sendToClient(client,"HTTP/1.1 " + std::to_string(code) + " " + this->stringifyError(code) + "\r\n" + "Content-Type: " + getMimeTypeFromExtension(dir) + "\r\nContent-Length: " + std::to_string(lSize) + "\r\n\r\n");
 			int readFD = open(dir.c_str(), O_RDONLY);
 			if (readFD < 0) return (sendErrorToClient(500, client));
-                //std::cout << "here3\n";
-			// setToWait(readFD, readingSet);
-			// selection(readingSet, writingSet);
+
 			char file[1024];
 			int ret = read(readFD, file, 1024);
 
@@ -170,6 +163,9 @@ std::string WebServ::fixUrl(std::string url, int serverID)
 
 void WebServ::autoIndex(int socket, std::string path, std::string url, ClientSocket& client)
 {
+    Location *location = getLocationByUrl(path, client);
+    if (location && !location->getCgi().empty())
+        return ;
     struct dirent *ent;
     std::string tosend = "HTTP/1.1 200 OK\n\n<!DOCTYPE html>\n<html>\n<body>\n<h1>" + path + "</h1>\n<pre>\n";
 	DIR *dir = opendir (url.c_str());
@@ -216,7 +212,6 @@ Location *WebServ::getLocationByUrl(std::string url, ClientSocket client)
     //std::string newurl = url;
     //newurl.
     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
-    std::cout << locations[0]->getRoot() << std::endl;
     for(size_t i = 0; i < locations.size(); i++)
     {
         //std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
@@ -233,13 +228,9 @@ Location *WebServ::getLocationByUrl(std::string url, ClientSocket client)
 std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
 {
     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
-    std::cout << locations[0]->getRoot() << std::endl;
     for(size_t i = 0; i < locations.size(); i++)
-    {
-        //std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
             return locations[i]->getRoot().erase(0,1);
-    }
     return "none";
 }
 
@@ -247,19 +238,10 @@ bool WebServ::isValidLoc(std::string url, ClientSocket client)
 {
     if (url == "/")
         return true;
-
     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
-    std::cout << locations[0]->getRoot() << std::endl;
     for(size_t i = 0; i < locations.size(); i++)
-    {
-        std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
-        {
-            std::cout << "VAAAALID LOC\n";
             return true;
-        }
-    }
-    std::cout << "NOT VAAAALID LOC\n";
     return false;
 }
 
@@ -267,7 +249,7 @@ bool WebServ::isValidLoc(std::string url, ClientSocket client)
 
 void WebServ::redirect(ClientSocket client, std::string url)
 {
-    std::string tosend = "HTTP/1.1 200 OK\n\n<head><meta http-equiv = \"refresh\" content = \"0; url =" + url + "\" /></head>";
+    std::string tosend = "HTTP/1.1 301 Moved Permanently\r\n\r\n<head><meta http-equiv = \"refresh\" content = \"0; url =" + url + "\" /></head>";
     int ret = send(client.getClientSocket(), tosend.c_str(), tosend.size(), 0);
 	if (ret > 0) return ;
 	(ret < 0) ? sendErrorToClient(500, client) : sendErrorToClient(400, client);
@@ -351,8 +333,6 @@ bool WebServ::selectAndWrite(std::string url, ClientSocket client, std::string s
         close(fd);
         return false;
     }
-    setToWait(fd, writingSet);
-    selection(readingSet, writingSet);
 	(str == "") ? ret = write(fd, req.getBody().c_str(), req.getBody().size()) : ret = write(fd, str.c_str(), str.size());
     if(ret < 0)
     {
@@ -423,14 +403,9 @@ void WebServ::clientError(int err, ClientSocket &client)
 
 int WebServ::checkRequest(Request &request, ClientSocket &client, int size)
 {
-	if (size < 0)
+    if (size < 0)
     {
-        clientError(500, client);
-        return 1;
-    }
-    else if(SIZE_MAX == 0)
-	{
-        eraseClient(client);
+        clientError(413, client);
         return 1;
     }
 	if ((request.getMethod() != "POST" && request.getMethod() != "GET" && request.getMethod() != "DELETE"))
@@ -470,14 +445,12 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
 {
     if (!isValidLoc(url, client))
         return true;
-    std::cout << "url => "<< url <<std::endl;
     if (url == "/")
     {
         //std::cout << "no loc\\n"; 
         std::vector<std::string> methods = servers[client.getServerID()]->getMethod();
         for(size_t i = 0; i < methods.size(); i++)
         {
-            std::cout << method << " ---- " << methods[i] << std::endl;
             if (method == methods[i])
                 return true;
         }
@@ -526,6 +499,8 @@ int containsCgiBin(const std::string& url)
         return 0;
 }
 
+std::vector<std::string> split(std::string const &str, char delim);
+
 void WebServ::manageClients()
 {
     for(size_t i = 0; i < clients.size(); i++)
@@ -541,34 +516,22 @@ void WebServ::manageClients()
 			std::string str(clients[i].buffer);
 			clients[i].request = str.substr(0, Reqsize);
             Request request((char *)clients[i].request.c_str());
-            if (request.getPath() != "/favicon.ico")
-            {
-                printf("%s\n", clients[i].buffer);
-            //     std::cout << "==================================" << std::endl;
-            //     // request.printRequest();
-            //     // std::cout << std::endl;
-            //     std::cout << "size => " << Reqsize << std::endl;
-            //     std::cout << clients[i].request << std::endl;
-            //     std::cout << "==================================" << std::endl;
+            std::cout << request.getRequest() << std::endl;
+            try {
+                int bodySize = std::stoi(this->servers[clients[i].getServerID()]->getBody());
+                if (bodySize < 0 || request.getBody().length() > (size_t) bodySize)
+                {
+                    this->clientError(413, clients[i]);
+                    continue;
+                }
             }
-			if (checkRequest(request, clients[i], Reqsize))
+            catch (std::exception &e) {
+                this->clientError(500, clients[i]);
+                continue;
+            }
+			if (checkRequest(request, clients[i], request.getBody().length()))
 				continue;
             std::string url = request.getPath();
-            // check if url contains cgi-bin
-            std::cout << "AFAF ::: "<< url << std::endl;
-            
-            //Location *location = getLocationByUrl(url, clients[i]);
-            // if (location) // check cgi
-            // if (location)
-            // // exec cgi
-            // {
-            //     if (....)
-            //     {
-            //          CGI cgi(request, location);
-            //          cgi.run_cgi();
-            //     }
-               
-            // }
 			runMethods(clients[i], url, request);
             eraseClient(clients[i]);
         }
@@ -762,16 +725,14 @@ void WebServ::DELETE(ClientSocket &client, std::string url)
 {
     std::string root = getLocationRoot(url, client);
     std::string path = findPWD(envp) + root;
-    std::cout << path << std::endl;
 	struct stat s;
-	std::cout << path << std::endl;
     stat(path.c_str(), &s);
     if (!S_ISDIR(s.st_mode))
         unlink(((const char *)path.c_str()));
     else
         removeFile(path);
-    std::string response = (char *)"HTTP/1.1 200\ret\nConnection: close\ret\nContent-Length: 70";
-    response += "\ret\n\ret\n<!DOCTYPE html><head><title>200 OK</title></head><body> </body></html>";
+    std::string response = (char *)"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 70";
+    response += "\r\n\r\n<!DOCTYPE html><head><title>200 OK</title></head><body> </body></html>";
     send(client.getClientSocket(), response.c_str(), response.size(), 0);
 }
 
