@@ -90,8 +90,6 @@ int WebServ::sendToClient(ClientSocket &client, char *msg, int size)
 
 void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 {	
-
-    //std::cout << "here   : " << dir << "\n";
     if(!dir.empty())
     {
         FILE *fd_s = fopen(dir.c_str(), "rb");
@@ -99,12 +97,10 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 			sendToClient(client ,  "HTTP/1.1 200\ret\nConnection: close\ret\nContent-Length: 120\ret\n\ret\n<!DOCTYPE html><head><title>makaynach</title></head><h1>wa hya location kayna walakin fin l file?</h1><body> </body></html>");
 		else
 		{
-            //std::cout << "here2\n";
 			fseek (fd_s , 0, SEEK_END);
 			int lSize = ftell (fd_s);
 			rewind (fd_s);
 			fclose(fd_s);
-            //std::cout << "mime type " << getMimeTypeFromExtension(dir) << std::endl;
 			sendToClient(client,"HTTP/1.1 " + std::to_string(code) + " " + this->stringifyError(code) + "\r\n" + "Content-Type: " + getMimeTypeFromExtension(dir) + "\r\nContent-Length: " + std::to_string(lSize) + "\r\n\r\n");
 			int readFD = open(dir.c_str(), O_RDONLY);
 			if (readFD < 0) return (sendErrorToClient(500, client));
@@ -119,22 +115,17 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 				sendErrorToClient(500, client);
 			else 
 			{
-                //std::cout << "here4\n";
 				while(ret)
 				{
                     ret2 = send(client.getClientSocket(), file, ret, 0);
-					//if (sendToClient(client, file, ret) <= 0) break;
-					// setToWait(readFD, readingSet);
-					// selection(readingSet, writingSet);
+
 					if((ret = read(readFD, file, 1024)) < 0)
 					{
 						sendErrorToClient(500, client);
-                        //std::cout << "err\n";
 						break;
 					}
 					if(ret == 0)
                     {
-                        //std::cout << "done\n";
                         break;
                     }
 						
@@ -144,9 +135,7 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 		}
     }
     return ;
-    //std::cout << "here5\n";
 	sendToClient(client ,  "HTTP/1.1 " + error_pages[code] + "\n\n");
-    //std::cout << "here6\n";
 }
 
 
@@ -372,7 +361,6 @@ void WebServ::clientsQueue()
 			setToWait(clients[i].getClientSocket(), read);
 		i++;
 	}
-    selection(read, write);
 }
 
 void WebServ::createClients()
