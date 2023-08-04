@@ -138,17 +138,23 @@ void WebServ::sendResponse(ClientSocket client, std::string dir, int code)
 	sendToClient(client ,  "HTTP/1.1 " + error_pages[code] + "\n\n");
 }
 
-
 std::string WebServ::fixUrl(std::string url, int serverID)
 {
-	std::string ret = servers[serverID]->getRoot();
-    if(ret[ret.size() - 1] == '/')
-        ret.erase(ret.size() - 1, 1);
-    if(locations && !(locations->getRoot().empty()))
-        url.erase(url.find(locations->getDir()), url.find(locations->getDir()) + locations->getDir().size());
-    ret += url;
-    return ret;
+    std::string ret = servers[serverID]->getRoot();
+    
+    if (ret.back() == '/')
+        ret.pop_back();
+    
+    if (locations && !locations->getRoot().empty())
+    {
+        size_t dirPos = url.find(locations->getDir());
+        if (dirPos != std::string::npos)
+            url.erase(dirPos, locations->getDir().size());
+    }
+    
+    return ret + url;
 }
+
 
 void WebServ::autoIndex(int socket, std::string path, std::string url, ClientSocket& client)
 {
@@ -198,18 +204,13 @@ Location *WebServ::getLocation(std::string url, int i)
 Location *WebServ::getLocationByUrl(std::string url, ClientSocket client)
 {
 
-    //std::string newurl = url;
-    //newurl.
     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
     for(size_t i = 0; i < locations.size(); i++)
     {
-        //std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
         {
-            //std::cout << url << " --   hahwa  -- " << std::endl;
             return locations[i];
-        }
-            
+        }    
     }
     return NULL;
 }
@@ -411,23 +412,8 @@ int WebServ::checkRequest(Request &request, ClientSocket &client, int size)
         clientError(413, client);
         return 1;
     } 
-	// need to check unautorised methods
 	return 0;
 }
-
-
-// std::string WebServ::getLocationRoot(std::string url, ClientSocket client)
-// {
-//     std::vector<Location *> locations = servers[client.getServerID()]->getLocation();
-//     //std::cout << locations[0]->getRoot() << std::endl;
-//     for(size_t i = 0; i < locations.size(); i++)
-//     {
-//         std::cout << url << " ---- " << locations[i]->getDir() << std::endl;
-//         if (url == locations[i]->getDir() + "/")
-//             return locations[i]->getRoot().erase(0,1);
-//     }
-//     return "none";
-// }
 
 bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::string url)
 {
@@ -435,7 +421,6 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
         return true;
     if (url == "/")
     {
-        //std::cout << "no loc\\n"; 
         std::vector<std::string> methods = servers[client.getServerID()]->getMethod();
         for(size_t i = 0; i < methods.size(); i++)
         {
@@ -451,11 +436,9 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
     {
         if (url == locations[i]->getDir() + "/" || url == locations[i]->getDir())
         {
-            //std::cout << "location ::::> " << locations[i]->getDir() << std::endl;
             std::vector<std::string> methods = locations[i]->getMethod();
             for(size_t i = 0; i < methods.size(); i++)
             {
-                //std::cout << method << " ---- " << methods[i] << std::endl;
                 if (method == methods[i])
                     return true;
             }
@@ -467,8 +450,6 @@ bool WebServ::isAllowdMethod(ClientSocket &client, std::string method, std::stri
 void WebServ::runMethods(ClientSocket &client, std::string url, Request &request)
 {
 	locations = getLocation(url, client.getServerID());
-    // if(locations->getRedir())
-    //     std::cout << locations->getRedir() << std::endl;
 	if(locations && !locations->getRedir().empty())
         redirect(client, locations->getRedir());
     else if (request.getMethod() == "GET" && isAllowdMethod(client, "GET", url))
@@ -495,7 +476,6 @@ void WebServ::manageClients()
     {
         if(FD_ISSET(clients[i].getClientSocket(), &readingSet))
         {   
-            // bzero(clients[i].buffer, 65536);
             ssize_t Reqsize = recv(clients[i].getClientSocket(), clients[i].buffer, 65536, 0);
             if (Reqsize == -1)
                 exit(69);
@@ -597,7 +577,6 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
         }
         else if (req.getContentType().find("urlencoded") != std::string::npos)
         {
-            // std::cout << "in here" << std::endl;
             std::string filename = body.substr(body.find("=") + 1);
             std::ifstream file(filename.c_str(), std::fstream::binary);
             if (!file.is_open())
@@ -605,7 +584,6 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
             else
             {
                 std::string line, path;
-            // std::cout << "in here" << std::endl;
 
                 if (this->locations && !this->locations->getUploadPath().empty())
                     path = this->locations->getUploadPath();
@@ -613,12 +591,10 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
                     path = this->servers[client.getServerID()]->getUploadPath();
                 else
                     return (this->sendToClient(client, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"), fd.close());
-            // std::cout << "in here" << std::endl;
 
                 std::ofstream newFile(path + filename, std::fstream::binary);
                 if (!newFile.is_open())
                     return (sendErrorToClient(500, client), fd.close());
-            // std::cout << "in here" << std::endl;
                 const int bufferSize = 2048;
                 char buffer[bufferSize];
                 while (file.read(buffer, bufferSize))
@@ -653,7 +629,6 @@ void WebServ::POST(ClientSocket &client, std::string url, Request &req)
         }
     }
     fd.close();
-    // std::cout << "========= received it bro ========" << std::endl;
 }
 
 std::string WebServ::getRandomName(void)
@@ -723,8 +698,6 @@ void WebServ::DELETE(ClientSocket &client, std::string url)
     response += "\r\n\r\n<!DOCTYPE html><head><title>200 OK</title></head><body> </body></html>";
     send(client.getClientSocket(), response.c_str(), response.size(), 0);
 }
-
-
 
 void pexit(std::string err)
 {
